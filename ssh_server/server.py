@@ -67,12 +67,16 @@ def check_auth(func):
     def wrapper(*args, **kwargs):
         login_session_id = request.get_cookie('login_session_id')
         if not login_session_id:
-            return abort(401, "Unauthorized: No session cookie found")
+            auth_header = request.get_header('Authorization')
+            if not auth_header:
+                return abort(401, "Unauthorized: No session cookie found")
         
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username FROM users WHERE login_session_id = ?", (login_session_id,))
-        session = cursor.fetchone()
+        session = None
+        if login_session_id:
+            cursor.execute("SELECT user_id, username FROM users WHERE login_session_id = ?", (login_session_id,))
+            session = cursor.fetchone()
         if not session:
             auth_header = request.get_header('Authorization')
             cursor.execute("SELECT user_id, username FROM users WHERE access_token = ?", (auth_header,))
@@ -129,7 +133,7 @@ def login():
     else:
         return abort(401, "Unauthorized: Invalid session")
 
-@app.route('/logout', method='POST')
+@app.route('/logout', method='DELETE')
 @enable_cors
 @check_auth
 def logout():
@@ -137,7 +141,7 @@ def logout():
     login_session_id = request.get_cookie('login_session_id')
 
     if login_session_id:
-        conn = sqlite3.connect('users.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('UPDATE users SET login_session_id = ? WHERE user_id = ?', (None, user_id) )
         conn.commit()
@@ -145,9 +149,25 @@ def logout():
 
         response.delete_cookie('login_session_id')
         response.delete_cookie('user_id')
+        response.delete_cookie('username')
         return {"status": "Logged out successfully"}
     else:
         return {"status": "No session found"}
+
+
+@app.route('/users', method=['GET', 'OPTIONS'])
+@enable_cors
+@check_auth
+def get_users():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT user_id, username, access_token, login_session_id FROM users')
+        users = cursor.fetchall()
+
+        return {"users": [{"user_id": row[0], "username": row[1], "access_token": row[2], "login_session_id": row[3]} for row in users]}
+    except Exception as e:
+        return {"error": str(e), "users": []}
 
 @app.route('/connections/requests', method=['GET', 'OPTIONS'])
 @enable_cors
@@ -172,14 +192,13 @@ def get_connections():
             query += ' AND requester = ?'
             params.append(requester)
 
-        print(query)
         cursor.execute(query, params)
         new_connections = cursor.fetchall()
         conn.close()
 
         return {"connections": [{"session_id": row[0], "hostname": row[1], "requester": row[2], "status":row[3], 'comment': row[4]} for row in new_connections]}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "connections": []}
 
 
 # Route to initiate an SSH connection request
