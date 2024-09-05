@@ -1,0 +1,22 @@
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  /* width: 80%; */
+  border: 1px solid black;
+  margin-top: 2%;
+}
+
+td, th {
+  min-width: 200px;
+  text-align: center;
+  padding: 8px;
+}
+tr:first-child{
+  background-color: grey;
+  width: 100%;
+}
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
