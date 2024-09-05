@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from bottle import Bottle, request, response, run
+from bottle import Bottle, request, response, run, abort
 import paramiko
 from scp import SCPClient
 import sqlite3
@@ -8,26 +8,88 @@ import uuid
 
 app = Bottle()
 
+DB_PATH = 'ssh_sessions.db'
 remote_path = '/home/user2402/data' #Remote Directory
 REMOTE_HOSTNAME = "139.59.17.95"
 REMOTE_PASSWORD = "dbNdBfw8HO2k7a1s"
 REMOTE_USERNAME = "user2402"
 # Database setup
 def init_db():
-    conn = sqlite3.connect('ssh_sessions.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS sessions (
                         session_id TEXT PRIMARY KEY,
                         hostname TEXT,
                         username TEXT,
                         password TEXT,
-                        requester TEXT,
+                        requester TEXT NOT NULL,
                         status INTEGER DEFAULT -1,
-                        file_path TEXT)''')
+                        file_path TEXT,
+                        comment TEXT)''')
+    
+    cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS users (
+                        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT NOT NULL,
+                        password TEXT NOT NULL,
+                        access_token TEXT,
+                        login_session_id TEXT
+                    )
+                    ''')
+    
     conn.commit()
     conn.close()
 
+def create_user(username, password):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''INSERT INTO users (username, password, access_token, login_session_id)
+                          VALUES (?, ?, ?, ?)''', 
+                          (username, password, str(uuid.uuid4()), None ))
+    conn.commit()
+    conn.close()
+
+
+def create_default_users():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM users")
+    count = cursor.fetchone()[0]
+    if count == 0:
+        create_user('admin', 'admin123')
+        create_user('deva', 'deva123')
+
 init_db()
+create_default_users()
+
+
+def check_auth(func):
+    def wrapper(*args, **kwargs):
+        login_session_id = request.get_cookie('login_session_id')
+        if not login_session_id:
+            return abort(401, "Unauthorized: No session cookie found")
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id, username FROM users WHERE login_session_id = ?", (login_session_id,))
+        session = cursor.fetchone()
+        if not session:
+            auth_header = request.get_header('Authorization')
+            cursor.execute("SELECT user_id, username FROM users WHERE access_token = ?", (auth_header,))
+            session = cursor.fetchone()
+
+        conn.close()
+
+        if session:
+            user_id, username = session
+            response.set_cookie('user_id', str(user_id))
+            response.set_cookie('username', username)
+            return func(*args, **kwargs)
+        else:
+            return abort(401, "Unauthorized: Invalid session")
+    
+    return wrapper
+
 
 def enable_cors(fn):
     def _enable_cors(*args, **kwargs):
@@ -41,17 +103,81 @@ def enable_cors(fn):
         return fn(*args, **kwargs)
     return _enable_cors
 
+
+@app.route('/login', method='POST')
+@enable_cors
+def login():
+    username = request.json.get('username')
+    password = request.json.get('password')
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT user_id FROM users WHERE username = ? AND password = ?", (username, password))
+    user = cursor.fetchone()
+
+    if user:
+        login_session_id = str(uuid.uuid4())  
+        cursor.execute('UPDATE users SET login_session_id = ? WHERE user_id = ?', (login_session_id, user[0]) )
+        conn.commit()
+        conn.close()
+        
+        response.set_cookie('login_session_id', login_session_id)
+        response.set_cookie('user_id', str(user[0]))
+
+        return {"status": "Login successful"}
+    else:
+        return abort(401, "Unauthorized: Invalid session")
+
+@app.route('/logout', method='POST')
+@enable_cors
+@check_auth
+def logout():
+    user_id = int(request.get_cookie('user_id', 0))
+    login_session_id = request.get_cookie('login_session_id')
+
+    if login_session_id:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET login_session_id = ? WHERE user_id = ?', (None, user_id) )
+        conn.commit()
+        conn.close()
+
+        response.delete_cookie('login_session_id')
+        response.delete_cookie('user_id')
+        return {"status": "Logged out successfully"}
+    else:
+        return {"status": "No session found"}
+
 @app.route('/connections/requests', method=['GET', 'OPTIONS'])
 @enable_cors
+@check_auth
 def get_connections():
     try:
-        conn = sqlite3.connect('ssh_sessions.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute('SELECT session_id, hostname, requester, status FROM sessions WHERE status = -1')
+
+        status = request.query.status if request.query.status else -1
+        hostname = request.query.hostname if request.query.hostname else None
+        requester = request.query.requester if request.query.requester else None
+
+        query = 'SELECT session_id, hostname, requester, status, comment FROM sessions WHERE status = ?'
+        params = [status]
+
+        if hostname:
+            query += ' AND hostname = ?'
+            params.append(hostname)
+        
+        if requester:
+            query += ' AND requester = ?'
+            params.append(requester)
+
+        print(query)
+        cursor.execute(query, params)
         new_connections = cursor.fetchall()
         conn.close()
 
-        return {"connections": [{"session_id": row[0], "hostname": row[1], "requester": row[2], "status":row[3]} for row in new_connections]}
+        return {"connections": [{"session_id": row[0], "hostname": row[1], "requester": row[2], "status":row[3], 'comment': row[4]} for row in new_connections]}
     except Exception as e:
         return {"error": str(e)}
 
@@ -68,7 +194,7 @@ def initiate_ssh():
         password = request.forms.get('password', REMOTE_PASSWORD)
         requester = request.json.get('requester')
 
-        conn = sqlite3.connect('ssh_sessions.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO sessions (session_id, hostname, username, password, requester)
                           VALUES (?, ?, ?, ?, ?)''', 
@@ -83,22 +209,25 @@ def initiate_ssh():
 # Route to approve or reject the SSH connection
 @app.route('/connections/action', method=['PUT', 'OPTIONS'])
 @enable_cors
+@check_auth
 def handle_connection():
     try:
         print(dict(request.json))
         session_id = request.json.get('session_id')
         action = request.json.get('action')
+        user_name = request.get_cookie('username')
 
-        conn = sqlite3.connect('ssh_sessions.db')
+
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
         if action == 'approve':
-            cursor.execute('UPDATE sessions SET status = 1 WHERE session_id = ?', (session_id,))
+            cursor.execute('UPDATE sessions SET status = 1, comment = ? WHERE session_id = ?', (f'{user_name}: Approved the connection', session_id,))
             conn.commit()
             return {"status": "SSH connection approved."}
         elif action == 'reject':
             #cursor.execute('DELETE FROM sessions WHERE session_id = ?', (session_id,))
-            cursor.execute('UPDATE sessions SET status = 0 WHERE session_id = ?', (session_id,))
+            cursor.execute('UPDATE sessions SET status = 0, comment = ? WHERE session_id = ?', (f'{user_name}: Rejected the connection', session_id,))
             conn.commit()
             return {"status": "SSH connection rejected and session deleted."}
         else:
@@ -115,8 +244,8 @@ def upload_file():
     file_path = None
     try:
         session_id = request.forms.get('session_id')
-
-        conn = sqlite3.connect('ssh_sessions.db')
+        print(session_id)
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('SELECT hostname, username, password, file_path, status FROM sessions WHERE session_id = ? AND status = 1', (session_id,))
         session_data = cursor.fetchone()

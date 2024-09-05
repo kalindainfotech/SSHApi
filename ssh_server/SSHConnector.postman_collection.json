@@ -7,6 +7,34 @@
 	},
 	"item": [
 		{
+			"name": "Login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Get all requested connections",
 			"request": {
 				"method": "GET",
@@ -27,47 +55,44 @@
 			"response": []
 		},
 		{
+			"name": "Get all Completed connections (Upload Completed)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/connections/requests?status=2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"connections",
+						"requests"
+					],
+					"query": [
+						{
+							"key": "status",
+							"value": "2"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Initiate Request",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "hostname",
-							"value": "192.168.1.116",
-							"description": "Optional to chnage server ip",
-							"type": "text",
-							"disabled": true
-						},
-						{
-							"key": "username",
-							"value": "server-username",
-							"description": "Optional to chnage server username",
-							"type": "text",
-							"disabled": true
-						},
-						{
-							"key": "password",
-							"value": "server-password",
-							"description": "Optional to chnage server password",
-							"type": "text",
-							"disabled": true
-						},
-						{
-							"key": "requester",
-							"value": "User-1",
-							"description": "Requesting user",
-							"type": "text"
-						},
-						{
-							"key": "",
-							"value": "",
-							"type": "text",
-							"disabled": true
+					"mode": "raw",
+					"raw": "{\n    \"requester\": \"Deva\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
 						}
-					]
+					}
 				},
 				"url": {
 					"raw": "http://localhost:8080/connections/initiate",
@@ -90,20 +115,13 @@
 				"method": "PUT",
 				"header": [],
 				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "action",
-							"value": "approve",
-							"description": "approve or reject",
-							"type": "text"
-						},
-						{
-							"key": "session_id",
-							"value": "864c913f-7b1a-46b1-925f-8c18ee940664",
-							"type": "text"
+					"mode": "raw",
+					"raw": "{\n    \"session_id\": \"e8182322-e044-40c3-97d5-1ec116f62c18\",\n    \"action\": \"approve\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
 						}
-					]
+					}
 				},
 				"url": {
 					"raw": "http://localhost:8080/connections/action",
@@ -130,13 +148,13 @@
 					"formdata": [
 						{
 							"key": "session_id",
-							"value": "864c913f-7b1a-46b1-925f-8c18ee940664",
+							"value": "e8182322-e044-40c3-97d5-1ec116f62c18",
 							"type": "text"
 						},
 						{
 							"key": "upload",
 							"type": "file",
-							"src": "/home/lordkrs/work/web/linminister/jsconfig.json"
+							"src": "/home/lordkrs/work/ethereum/ssh-connector.zip"
 						}
 					]
 				},
@@ -150,6 +168,62 @@
 					"path": [
 						"connections",
 						"upload"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get all requested connections based on Requester",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/connections/requests?requester=Deva",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"connections",
+						"requests"
+					],
+					"query": [
+						{
+							"key": "requester",
+							"value": "Deva"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get all connections based on Requester and Status (Combination)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/connections/requests?status=1&requester=Deva",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"connections",
+						"requests"
+					],
+					"query": [
+						{
+							"key": "status",
+							"value": "1"
+						},
+						{
+							"key": "requester",
+							"value": "Deva"
+						}
 					]
 				}
 			},
