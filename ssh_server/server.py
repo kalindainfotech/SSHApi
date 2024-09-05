@@ -99,7 +99,7 @@ def enable_cors(fn):
     def _enable_cors(*args, **kwargs):
         response.headers['Access-Control-Allow-Origin'] = '*'  # Allow all origins, adjust as needed
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+        response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token, Authorization'
 
         # If this is an OPTIONS request, skip the route handler
         if request.method == 'OPTIONS':
@@ -108,7 +108,7 @@ def enable_cors(fn):
     return _enable_cors
 
 
-@app.route('/login', method='POST')
+@app.route('/login', method=['POST','OPTIONS'])
 @enable_cors
 def login():
     username = request.json.get('username')
@@ -129,11 +129,11 @@ def login():
         response.set_cookie('login_session_id', login_session_id)
         response.set_cookie('user_id', str(user[0]))
 
-        return {"status": "Login successful"}
+        return {"status": 200,"user_id":str(user[0]),"login_session_id":login_session_id}
     else:
         return abort(401, "Unauthorized: Invalid session")
 
-@app.route('/logout', method='DELETE')
+@app.route('/logout', method=['DELETE','OPTIONS'])
 @enable_cors
 @check_auth
 def logout():
@@ -157,7 +157,7 @@ def logout():
 
 @app.route('/users', method=['GET', 'OPTIONS'])
 @enable_cors
-@check_auth
+# @check_auth
 def get_users():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -171,7 +171,7 @@ def get_users():
 
 @app.route('/connections/requests', method=['GET', 'OPTIONS'])
 @enable_cors
-@check_auth
+# @check_auth
 def get_connections():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -228,7 +228,7 @@ def initiate_ssh():
 # Route to approve or reject the SSH connection
 @app.route('/connections/action', method=['PUT', 'OPTIONS'])
 @enable_cors
-@check_auth
+# @check_auth
 def handle_connection():
     try:
         print(dict(request.json))
