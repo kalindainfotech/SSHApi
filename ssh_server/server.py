@@ -61,14 +61,12 @@ def get_connections():
 @enable_cors
 def initiate_ssh():
     try:
-        print(dict(request.json),'ssssssssssssssssssss')
+        print(dict(request.json))
         session_id = str(uuid.uuid4())
-        hostname = request.forms.get('hostname', REMOTE_HOSTNAME)
+        hostname = request.json.get('hostname', REMOTE_HOSTNAME)
         username = request.forms.get('username', REMOTE_USERNAME)
         password = request.forms.get('password', REMOTE_PASSWORD)
         requester = request.json.get('requester')
-
-        print(requester)
 
         conn = sqlite3.connect('ssh_sessions.db')
         cursor = conn.cursor()
