@@ -15,10 +15,8 @@ const ApproveScreen = () => {
     const fetchConnections = async () => {
         try {
             if(getToken()){
-                console.log(getToken())
                 const response = await axios.get(GETALLINITIATESAPI);
-            console.log(response.data.connections)
-            setConnections(response.data.connections);
+                setConnections(response.data.connections);
             }else{
                 console.log("No token available")
             }

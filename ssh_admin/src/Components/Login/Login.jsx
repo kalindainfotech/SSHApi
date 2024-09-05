@@ -13,16 +13,20 @@ const Login = () => {
 
     const handleLogin = async () => {
         console.log("clicked")
-        await axios.post(LOGINAPI,credetials).then(async (res)=>{
-            if(res.data.status === 200){
-                setToken(res.data.login_session_id)
-                await axios.get(USERSAPI).then(()=>{
-                    navigate("/approval")    
-                }).catch((err)=>console.log(err))
-            }else{
-                toast.error("Invalid Username and Password")
-            }
-        }).catch((err)=>console.log(err))
+        if(credetials.username&&credetials.password){
+            await axios.post(LOGINAPI,credetials).then(async (res)=>{
+                if(res.data.status === 200){
+                    setToken(res.data.login_session_id)
+                    await axios.get(USERSAPI).then(()=>{
+                        navigate("/approval")    
+                    }).catch((err)=>console.log(err))
+                }else{
+                    toast.error("Invalid Username and Password")
+                }
+            }).catch((err)=>toast.error("Invalid Username and Password"))
+        }else{
+            toast.error("Enter Username and Password")
+        }
     }
     return (
         <div>
