@@ -256,6 +256,26 @@ def handle_connection():
     finally:
         conn.close()
 
+# Route to check the session_id status
+@app.route('/connections/status', method=['POST', 'OPTIONS'])
+@enable_cors
+def status_check():
+    try:
+        session_id = request.json.get('session_id')
+        print(session_id)
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        query = 'SELECT session_id, hostname, requester, status, comment FROM sessions WHERE session_id = ?'
+        params = [session_id]
+        cursor.execute(query, params)
+        new_connections = cursor.fetchall()
+        conn.close()
+
+        return {"connections": [{"session_id": row[0], "hostname": row[1], "requester": row[2], "status":row[3], 'comment': row[4]} for row in new_connections]}
+    except Exception as e:
+        return {"error": str(e), "connections": []}       
+        
+
 # Route to upload a file
 @app.route('/connections/upload', method=['POST', 'OPTIONS'])
 @enable_cors
