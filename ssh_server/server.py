@@ -25,6 +25,7 @@ def init_db():
                         requester TEXT NOT NULL,
                         status INTEGER DEFAULT -1,
                         file_path TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         comment TEXT)''')
     
     cursor.execute('''
@@ -181,7 +182,7 @@ def get_connections():
         hostname = request.query.hostname if request.query.hostname else None
         requester = request.query.requester if request.query.requester else None
 
-        query = 'SELECT session_id, hostname, requester, status, comment FROM sessions WHERE status = ?'
+        query = 'SELECT session_id, hostname, requester, status, comment, created_at FROM sessions WHERE status = ?'
         params = [status]
 
         if hostname:
@@ -196,7 +197,7 @@ def get_connections():
         new_connections = cursor.fetchall()
         conn.close()
 
-        return {"connections": [{"session_id": row[0], "hostname": row[1], "requester": row[2], "status":row[3], 'comment': row[4]} for row in new_connections]}
+        return {"connections": [{"session_id": row[0], "hostname": row[1], "requester": row[2], "status":row[3], 'comment': row[4], "created_at": row[5]} for row in new_connections]}
     except Exception as e:
         return {"error": str(e), "connections": []}
 
