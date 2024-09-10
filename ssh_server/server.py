@@ -100,7 +100,7 @@ def enable_cors(fn):
     def _enable_cors(*args, **kwargs):
         response.headers['Access-Control-Allow-Origin'] = '*'  # Allow all origins, adjust as needed
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token'
+        response.headers['Access-Control-Allow-Headers'] = 'Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token, Authorization'
 
         # If this is an OPTIONS request, skip the route handler
         if request.method == 'OPTIONS':
@@ -109,7 +109,7 @@ def enable_cors(fn):
     return _enable_cors
 
 
-@app.route('/login', method='POST')
+@app.route('/login', method=['POST','OPTIONS'])
 @enable_cors
 def login():
     username = request.json.get('username')
@@ -130,11 +130,11 @@ def login():
         response.set_cookie('login_session_id', login_session_id)
         response.set_cookie('user_id', str(user[0]))
 
-        return {"status": "Login successful"}
+        return {"status": 200,"user_id":str(user[0]),"login_session_id":login_session_id}
     else:
         return abort(401, "Unauthorized: Invalid session")
 
-@app.route('/logout', method='DELETE')
+@app.route('/logout', method=['DELETE','OPTIONS'])
 @enable_cors
 @check_auth
 def logout():
@@ -158,7 +158,7 @@ def logout():
 
 @app.route('/users', method=['GET', 'OPTIONS'])
 @enable_cors
-@check_auth
+# @check_auth
 def get_users():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -172,7 +172,7 @@ def get_users():
 
 @app.route('/connections/requests', method=['GET', 'OPTIONS'])
 @enable_cors
-@check_auth
+# @check_auth
 def get_connections():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -229,7 +229,7 @@ def initiate_ssh():
 # Route to approve or reject the SSH connection
 @app.route('/connections/action', method=['PUT', 'OPTIONS'])
 @enable_cors
-@check_auth
+# @check_auth
 def handle_connection():
     try:
         print(dict(request.json))
@@ -256,6 +256,26 @@ def handle_connection():
         return {"error": str(e)}
     finally:
         conn.close()
+
+# Route to check the session_id status
+@app.route('/connections/status', method=['POST', 'OPTIONS'])
+@enable_cors
+def status_check():
+    try:
+        session_id = request.json.get('session_id')
+        print(session_id)
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        query = 'SELECT session_id, hostname, requester, status, comment FROM sessions WHERE session_id = ?'
+        params = [session_id]
+        cursor.execute(query, params)
+        new_connections = cursor.fetchall()
+        conn.close()
+
+        return {"connections": [{"session_id": row[0], "hostname": row[1], "requester": row[2], "status":row[3], 'comment': row[4]} for row in new_connections]}
+    except Exception as e:
+        return {"error": str(e), "connections": []}       
+        
 
 # Route to upload a file
 @app.route('/connections/upload', method=['POST', 'OPTIONS'])

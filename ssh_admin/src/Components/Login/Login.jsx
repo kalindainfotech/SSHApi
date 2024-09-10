@@ -1,17 +1,32 @@
 import React, { useState } from 'react'
-
+import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css';
 import './Login.css'
 import { useNavigate } from 'react-router-dom';
+import { LOGINAPI, USERSAPI } from '../../utils/network';
+import { setToken } from '../../utils/storage';
 
 const Login = () => {
     const navigate = useNavigate()
-    const [credetials, setCredentials] = useState({ email: "", password: "" })
+    const [credetials, setCredentials] = useState({ username: "", password: "" })
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         console.log("clicked")
-        navigate("/approval")
+        if(credetials.username&&credetials.password){
+            await axios.post(LOGINAPI,credetials).then(async (res)=>{
+                if(res.data.status === 200){
+                    setToken(res.data.login_session_id)
+                    await axios.get(USERSAPI).then(()=>{
+                        navigate("/approval")    
+                    }).catch((err)=>console.log(err))
+                }else{
+                    toast.error("Invalid Username and Password")
+                }
+            }).catch((err)=>toast.error("Invalid Username and Password"))
+        }else{
+            toast.error("Enter Username and Password")
+        }
     }
     return (
         <div>
@@ -20,7 +35,7 @@ const Login = () => {
                 <div className='login-content'>
                     <div className='login-textbox'>
                         <label htmlFor="email">Email</label>
-                        <input type="text" name="email" id="email" value={credetials.email} onChange={(e) => setCredentials({ ...credetials, [e.target.name]: e.target.value })} placeholder='Enter the email' />
+                        <input type="text" name="username" id="username" value={credetials.username} onChange={(e) => setCredentials({ ...credetials, [e.target.name]: e.target.value })} placeholder='Enter the Username' />
                     </div>
                     <div className='login-textbox'>
                         <label htmlFor="password">Password</label>

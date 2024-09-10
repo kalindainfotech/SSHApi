@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Button } from '@mui/material';
 import sound from '../../assets/sound/sound.mp3'
 import { GETALLINITIATESAPI, UPLOADAPI } from '../../utils/network';
+import { getToken } from '../../utils/storage';
 
 
 const ApproveScreen = () => {
@@ -13,9 +14,12 @@ const ApproveScreen = () => {
 
     const fetchConnections = async () => {
         try {
-            const response = await axios.get(GETALLINITIATESAPI);
-            console.log(response.data.connections)
-            setConnections(response.data.connections);
+            if(getToken()){
+                const response = await axios.get(GETALLINITIATESAPI);
+                setConnections(response.data.connections);
+            }else{
+                console.log("No token available")
+            }
         } catch (error) {
             console.error('Error fetching connections:', error);
         } finally {
