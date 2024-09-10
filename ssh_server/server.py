@@ -285,13 +285,16 @@ def is_approved(session_id):
     print(session_id)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    query = 'SELECT session_id, hostname, requester, status, comment FROM sessions WHERE session_id = ? AND status = 1'
+    query = 'SELECT session_id, hostname, requester, status, comment FROM sessions WHERE session_id = ?'
     params = [session_id]
     cursor.execute(query, params)
     session_data = cursor.fetchone()
     conn.close()
-    if not session_data:
+    if session_data[3] == -1:
         return abort(406, f'Session_id<{session_id}> not approved')
+    
+    if session_data[3] in [0, 2]:
+        return abort(409, f'Session_id<{session_id}> Already used')
 
     return {"connections": {"session_id": session_data[0], "hostname": session_data[1], "requester": session_data[2], "status":session_data[3], 'comment': session_data[4]} }
 
@@ -354,6 +357,14 @@ def upload_file():
                     os.remove(file_path)
             except Exception as ex:
                 print('[Error while removing file {} ->{}]'.format(file_path,ex))
+
+@app.route('/connections/upload/<session_id>/completed', method=['PUT'])
+def mark_session_id_as_completed(session_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('UPDATE sessions SET status = 2 WHERE session_id = ?', (session_id,))
+    conn.commit()
+    conn.close()
 
 @app.route('/static/<path:path>')
 def serve_file(path):
