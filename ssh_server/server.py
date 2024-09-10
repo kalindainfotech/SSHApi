@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from bottle import Bottle, request, response, run, abort
+from bottle import Bottle, request, response, run, abort, static_file, redirect
 import paramiko
 from scp import SCPClient
 import sqlite3
@@ -13,6 +13,8 @@ remote_path = '/home/user2402/data' #Remote Directory
 REMOTE_HOSTNAME = "139.59.17.95"
 REMOTE_PASSWORD = "dbNdBfw8HO2k7a1s"
 REMOTE_USERNAME = "user2402"
+WEB_PATH = os.path.join( os.path.dirname(os.path.dirname(os.path.realpath(__file__)) ), "ssh_admin", "build")
+WEB_STATIC_PATH = os.path.join( os.path.dirname(os.path.dirname(os.path.realpath(__file__)) ), "ssh_admin", "build", "static")
 # Database setup
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -277,6 +279,24 @@ def status_check():
         return {"error": str(e), "connections": []}       
         
 
+@app.route('/connections/status/<session_id>/approved', method=['GET', 'OPTIONS'])
+@enable_cors
+def is_approved(session_id):
+    print(session_id)
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    query = 'SELECT session_id, hostname, requester, status, comment FROM sessions WHERE session_id = ? AND status = 1'
+    params = [session_id]
+    cursor.execute(query, params)
+    session_data = cursor.fetchone()
+    conn.close()
+    if not session_data:
+        return abort(406, f'Session_id<{session_id}> not approved')
+
+    return {"connections": {"session_id": session_data[0], "hostname": session_data[1], "requester": session_data[2], "status":session_data[3], 'comment': session_data[4]} }
+
+
+
 # Route to upload a file
 @app.route('/connections/upload', method=['POST', 'OPTIONS'])
 @enable_cors
@@ -320,18 +340,42 @@ def upload_file():
 
         cursor.execute('UPDATE sessions SET status = 2,file_path=? WHERE session_id = ?', (file_path,session_id))
         conn.commit()
+        conn.close()
 
         return {"status": "File uploaded successfully."}
     except Exception as e:
         return {"error": str(e)}
     finally:
-        conn.close()
+        if conn:
+            conn.close()
         if file_path:
             try:
                 if os.path.exists(file_path):
                     os.remove(file_path)
             except Exception as ex:
                 print('[Error while removing file {} ->{}]'.format(file_path,ex))
+
+@app.route('/static/<path:path>')
+def serve_file(path):
+    return static_file(path, root=WEB_STATIC_PATH)
+
+@app.route('/manifest.json')
+def serve_file():
+    path = "manifest.json"
+    return static_file(path, root=WEB_PATH)
+
+@app.route('/logo:re:.+')
+def serve_file(path):
+    print(path)
+    return static_file(path, root=WEB_PATH)
+
+@app.route('/web/<path:path>')
+def serve_file(path):
+    return static_file(path, root=WEB_PATH)
+
+@app.route('/')
+def redirect_to_web():
+    return redirect('/web/index.html')
 
 if __name__ == '__main__':
     run(app, host='0.0.0.0', port=8080)
