@@ -10,15 +10,27 @@ import socket
 # Constants
 HOSTNAME = socket.gethostname()
 SESSION_FILE = 'session_id'
-API_BASE_URL = 'http://localhost:8080'
+API_BASE_URL = None
 POLL_INTERVAL = 5  # seconds
 REMOTE_PATH = '/home/user2402/data' #Remote Directory
 REMOTE_HOSTNAME = "139.59.17.95"
 REMOTE_PORT = 22
 REMOTE_PASSWORD = "dbNdBfw8HO2k7a1s"
 REMOTE_USERNAME = "user2402"
+CONFIG_PATH = 'config.json'
 
 
+def create_json_file():
+    if not os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, 'w') as json_file:
+            json.dump({'API_BASE_URL': 'http://localhost:8080'}, json_file, indent=4)
+        print(f"JSON file created with default data at {CONFIG_PATH}")
+
+def get_config():
+    with open(CONFIG_PATH, 'r') as json_file:
+        data = json.load(json_file)
+        return data
+    
 # Function to save session_id to file
 def save_session_id(session_id):
     with open(SESSION_FILE, 'w') as file:
@@ -122,4 +134,7 @@ def main():
         print(f"Error during file upload: {e}")
 
 if __name__ == '__main__':
+    create_json_file()
+    config = get_config()
+    API_BASE_URL = config['API_BASE_URL']
     main()
