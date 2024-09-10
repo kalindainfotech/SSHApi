@@ -1,22 +1,91 @@
+*{
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 900;
+}
 table {
-  font-family: arial, sans-serif;
   border-collapse: collapse;
-  /* width: 80%; */
-  border: 1px solid black;
-  margin-top: 2%;
+  width: 100%;
+  background-color: lightblue;
 }
 
-td, th {
-  min-width: 200px;
+th, td {
   text-align: center;
   padding: 8px;
+  border: 1px solid rgb(255, 255, 255);
 }
-tr:first-child{
-  background-color: grey;
-  width: 100%;
+
+tr:nth-child(even) {
+  background-color: #82d1fc;
 }
-.App {
+
+th {
+  background-color: #84cef7;
+  color: white;
+}
+.ApprovalscreenHeader{
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  margin-left: 2%;
+  margin-right: 2%;
   align-items: center;
+}
+.ApprovalscreenHeader1{
+  width: 150px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+select {
+  width: 150px;
+  height: 25px;
+  text-align: center;
+  margin-left: 20px;
+}
+.backArrow{
+display: flex; 
+align-items: center;
+}
+
+.popupScreen{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100%;
+  z-index: 1;   
+}
+
+
+.popupScreens{
+  width: 30%;
+  height: 25%;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  border: 1px solid grey;
+}
+.popupScreen-button{
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+}
+@media (max-width: 425px) {
+  .popupScreens{
+    width: 75%;
+    height: 25%;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    border: 1px solid grey;
+  }
+  .popupScreen-button{
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+  }
 }

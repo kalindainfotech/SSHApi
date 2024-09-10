@@ -33,6 +33,7 @@ const Login = () => {
             <div className='login'>
                 <ToastContainer />
                 <div className='login-content'>
+                <h3>Login</h3>
                     <div className='login-textbox'>
                         <label htmlFor="email">Email</label>
                         <input type="text" name="username" id="username" value={credetials.username} onChange={(e) => setCredentials({ ...credetials, [e.target.name]: e.target.value })} placeholder='Enter the Username' />

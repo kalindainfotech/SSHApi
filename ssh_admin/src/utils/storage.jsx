@@ -7,3 +7,7 @@ export function setToken(data) {
 export function getToken() {
     return decrypt(localStorage.getItem('token'))
 }
+
+export function Logout(){
+    localStorage.clear()
+}

@@ -9,8 +9,8 @@
     padding: 0;
 }
 .login-content{
-    width: 25vw;
-    height: 40vh;
+    width: 30%;
+    height: 50%;
     border-radius: 5px;
     background-color: white;
     display: flex;
@@ -44,4 +44,11 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+@media (max-width:426px) {
+    .login-content{
+        width: 90%;
+        height: 50%;
+    }
 }
