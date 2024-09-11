@@ -223,7 +223,7 @@ def initiate_ssh():
         cursor = conn.cursor()
         cursor.execute('''INSERT INTO sessions (session_id, hostname, username, password, requester)
                           VALUES (?, ?, ?, ?, ?)''', 
-                          (session_id, hostname, username, password, requester))
+                          (session_id, request.environ.get('REMOTE_ADDR',hostname), username, password, requester))
         conn.commit()
         conn.close()
 
