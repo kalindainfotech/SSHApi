@@ -6,6 +6,7 @@ import argparse
 import paramiko
 from scp import SCPClient
 import socket
+from pathlib import Path
 
 # Constants
 HOSTNAME = socket.gethostname()
@@ -17,7 +18,7 @@ REMOTE_HOSTNAME = "139.59.17.95"
 REMOTE_PORT = 22
 REMOTE_PASSWORD = "dbNdBfw8HO2k7a1s"
 REMOTE_USERNAME = "user2402"
-CONFIG_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__)) , 'config.json')
+CONFIG_PATH = os.path.join( Path.home(), '.ssh_client_config.json')
 
 
 def create_json_file():
@@ -89,7 +90,7 @@ def scp_upload_file(hostname, port, username, password, local_file_path, remote_
 
     def progress(filename, size, sent):
         progress_percentage = (sent / size) * 100
-        print(f"{filename}: {progress_percentage:.2f}% transferred")
+        print(f"{filename}: {progress_percentage:.2f}% transferred", end='\r')
 
     with SCPClient(ssh_client.get_transport(), progress=progress) as scp:
         scp.put(local_file_path, remote_file_path)
@@ -102,6 +103,9 @@ def main():
     parser.add_argument('--path', help='Path to the local file to be uploaded')
     parser.add_argument('--requester', help='Requester information', default=os.getlogin())
     args = parser.parse_args()
+    
+    if not args.path:
+        raise Exception('Path needs to be provided, --help with the binary')
 
     session_id = read_session_id()
     if session_id:
