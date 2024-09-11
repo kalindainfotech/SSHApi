@@ -1,18 +1,23 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css';
 import './Login.css'
 import { useNavigate } from 'react-router-dom';
 import { LOGINAPI, USERSAPI } from '../../utils/network';
-import { setToken } from '../../utils/storage';
+import { getToken, setToken } from '../../utils/storage';
 
 const Login = () => {
     const navigate = useNavigate()
     const [credetials, setCredentials] = useState({ username: "", password: "" })
 
+    useEffect(()=>{
+        if(getToken()){
+            navigate('/')
+        }
+    },[])
+
     const handleLogin = async () => {
-        console.log("clicked")
         if(credetials.username&&credetials.password){
             await axios.post(LOGINAPI,credetials).then(async (res)=>{
                 if(res.data.status === 200){
