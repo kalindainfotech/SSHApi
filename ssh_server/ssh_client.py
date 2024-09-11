@@ -17,13 +17,13 @@ REMOTE_HOSTNAME = "139.59.17.95"
 REMOTE_PORT = 22
 REMOTE_PASSWORD = "dbNdBfw8HO2k7a1s"
 REMOTE_USERNAME = "user2402"
-CONFIG_PATH = 'config.json'
+CONFIG_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__)) , 'config.json')
 
 
 def create_json_file():
     if not os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, 'w') as json_file:
-            json.dump({'API_BASE_URL': 'http://localhost:8080'}, json_file, indent=4)
+            json.dump({'API_BASE_URL': f'http://{REMOTE_HOSTNAME}:8080'}, json_file, indent=4)
         print(f"JSON file created with default data at {CONFIG_PATH}")
 
 def get_config():
