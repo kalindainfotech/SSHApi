@@ -15,6 +15,9 @@ REMOTE_PASSWORD = "dbNdBfw8HO2k7a1s"
 REMOTE_USERNAME = "user2402"
 WEB_PATH = os.path.join( os.path.dirname(os.path.dirname(os.path.realpath(__file__)) ), "ssh_admin", "build")
 WEB_STATIC_PATH = os.path.join( os.path.dirname(os.path.dirname(os.path.realpath(__file__)) ), "ssh_admin", "build", "static")
+LINUX_CLIENT_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__) ), "dist", "linux-gui", "ssh_client_gui.bin")
+WINDOWS_CLIENT_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__) ), "dist", "windows-gui", "ssh_client_gui.exe")
+
 # Database setup
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -387,6 +390,19 @@ def serve_file(path):
 @app.route('/')
 def redirect_to_web():
     return redirect('/web/index.html')
+
+@app.route('/client/linux')
+def serve_file():
+    print(LINUX_CLIENT_PATH)
+    return static_file(os.path.basename(LINUX_CLIENT_PATH), root=os.path.dirname(LINUX_CLIENT_PATH))
+
+@app.route('/client/windows')
+def serve_file():
+    return static_file(os.path.basename(WINDOWS_CLIENT_PATH), root=os.path.dirname(WINDOWS_CLIENT_PATH))
+
+@app.route('/install-linux-client')
+def redirect_to_web():
+    return "sudo mkdir -p /opt/ssh_client && wget http://{}:8080/client/linux -O /opt/ssh_client/ssh_client && chmod +x /opt/ssh_client/ssh_client && sudo ln -s /opt/ssh_client/ssh_client /usr/local/bin/ssh_client && chmod +x /usr/local/bin/ssh_client".format(REMOTE_HOSTNAME)
 
 if __name__ == '__main__':
     run(app, host='0.0.0.0', port=8080)
