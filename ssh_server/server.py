@@ -16,7 +16,7 @@ REMOTE_USERNAME = "user2402"
 WEB_PATH = os.path.join( os.path.dirname(os.path.dirname(os.path.realpath(__file__)) ), "ssh_admin", "build")
 WEB_STATIC_PATH = os.path.join( os.path.dirname(os.path.dirname(os.path.realpath(__file__)) ), "ssh_admin", "build", "static")
 LINUX_CLIENT_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__) ), "dist", "linux-gui", "ssh_client_gui.bin")
-WINDOWS_CLIENT_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__) ), "dist", "windows-gui", "ssh_client_gui.exe")
+WINDOWS_CLIENT_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__) ), "dist", "windows-gui", "ssh_client_gui.zip")
 
 # Database setup
 def init_db():
