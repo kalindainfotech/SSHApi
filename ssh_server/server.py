@@ -393,12 +393,18 @@ def redirect_to_web():
 
 @app.route('/client/linux')
 def serve_file():
-    return static_file(os.path.basename(LINUX_CLIENT_PATH), root=os.path.dirname(LINUX_CLIENT_PATH))
+    return static_file(os.path.basename(LINUX_CLIENT_PATH), root=os.path.dirname(LINUX_CLIENT_PATH), download="ssh_client")
 
 @app.route('/client/windows')
 def serve_file():
     response.set_header('Content-Disposition', f'attachment; filename="ssh_client.exe"')
     return static_file(os.path.basename(WINDOWS_CLIENT_PATH), root=os.path.dirname(WINDOWS_CLIENT_PATH), download="ssh_client.exe")
+
+@app.route('/client/windows-tar')
+def serve_file():
+    response.set_header('Content-Disposition', f'attachment; filename="ssh_client.exe"')
+    return static_file("ssh_client.tar.gz", root=os.path.dirname(WINDOWS_CLIENT_PATH), download="ssh_client.tar.gz")
+
 
 @app.route('/install-linux-client')
 def redirect_to_web():
