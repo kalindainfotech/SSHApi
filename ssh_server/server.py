@@ -411,4 +411,4 @@ def redirect_to_web():
     return "sudo mkdir -p /opt/ssh_client && wget http://{}:8080/client/linux -O /opt/ssh_client/ssh_client && chmod +x /opt/ssh_client/ssh_client && sudo ln -s /opt/ssh_client/ssh_client /usr/local/bin/ssh_client && chmod +x /usr/local/bin/ssh_client".format(REMOTE_HOSTNAME)
 
 if __name__ == '__main__':
-    run(app, host='0.0.0.0', port=8080)
+    run(app, host='0.0.0.0', port=8080, server="twisted",debug=True)
