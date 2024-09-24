@@ -5,6 +5,8 @@ from scp import SCPClient
 import sqlite3
 import os
 import uuid
+import requests
+from requests.auth import HTTPBasicAuth
 
 app = Bottle()
 
@@ -17,6 +19,12 @@ WEB_PATH = os.path.join( os.path.dirname(os.path.dirname(os.path.realpath(__file
 WEB_STATIC_PATH = os.path.join( os.path.dirname(os.path.dirname(os.path.realpath(__file__)) ), "ssh_admin", "build", "static")
 LINUX_CLIENT_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__) ), "dist", "linux-gui", "ssh_client_gui.bin")
 WINDOWS_CLIENT_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__) ), "dist", "windows-gui", "ssh_client_gui.zip")
+
+BANK_BASE_URL = 'https://webapp.spmonzabank.net/fineract-provider'
+SAVINGS_URL = '/api/v1/savingsaccounts'
+EXTERNAL_ID = '9fe93a25-9afa-4be7-94b5-75a4d730ee99'
+USERNAME = "SPMZBK"
+PASSWORD = "%FCCzGfDiS$o!1m"
 
 # Database setup
 def init_db():
@@ -409,6 +417,24 @@ def serve_file():
 @app.route('/install-linux-client')
 def redirect_to_web():
     return "sudo mkdir -p /opt/ssh_client && wget http://{}:8080/client/linux -O /opt/ssh_client/ssh_client && chmod +x /opt/ssh_client/ssh_client && sudo ln -s /opt/ssh_client/ssh_client /usr/local/bin/ssh_client && chmod +x /usr/local/bin/ssh_client".format(REMOTE_HOSTNAME)
+
+@app.route('/accounts/savings')
+@check_auth
+def get_savings_account():
+    try:
+        url = f"{BANK_BASE_URL}{SAVINGS_URL}?externalId={EXTERNAL_ID}"
+        payload={}
+        headers = {
+            'Accept': 'application/json',
+            'fineract-platform-tenantid': 'default'
+        }    
+        response = requests.get(url, auth=HTTPBasicAuth(USERNAME, PASSWORD), headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f'Bank responded with status code:{response.status_code}, Text:{response.text}')
+        
+    except Exception as ex:
+        return abort(500, text=str(ex))
 
 if __name__ == '__main__':
     run(app, host='0.0.0.0', port=8080, server="twisted",debug=True)

@@ -291,6 +291,89 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "Request Status",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "Get Savings Account Info",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/accounts/savings",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"accounts",
+						"savings"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Dont Use-Get Savings Account Info(Actual bak)",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "%FCCzGfDiS$o!1m",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "SPMZBK",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "fineract-platform-tenantid",
+						"value": "default",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://webapp.spmonzabank.net/fineract-provider/api/v1/savingsaccounts?externalId=9fe93a25-9afa-4be7-94b5-75a4d730ee99",
+					"protocol": "https",
+					"host": [
+						"webapp",
+						"spmonzabank",
+						"net"
+					],
+					"path": [
+						"fineract-provider",
+						"api",
+						"v1",
+						"savingsaccounts"
+					],
+					"query": [
+						{
+							"key": "externalId",
+							"value": "9fe93a25-9afa-4be7-94b5-75a4d730ee99"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }
