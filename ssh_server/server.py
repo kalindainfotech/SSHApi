@@ -508,7 +508,7 @@ def prepare_transaction():
     except Exception as ex:
         cursor.execute('''INSERT INTO transactions (requester_user_id, requester_user_ip, status, amount, currency, note, transaction_code, transfer_code, transactionRole, comment)
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
-                          (user_id, request.environ.get('REMOTE_ADDR'), 'failed', -1, currency, note, transactionCode, transferCode, transactionRole, f'{username} request for {request.json.get('amount')} {currency} failed with error:{ex}'))
+                          (user_id, request.environ.get('REMOTE_ADDR'), 'failed', -1, currency, note, transactionCode, transferCode, transactionRole, f'{username} request for {request.json.get("amount")} {currency} failed with error:{ex}'))
         conn.commit()
         resp = abort(500, text=str(ex))
 
