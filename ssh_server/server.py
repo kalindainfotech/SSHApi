@@ -22,6 +22,7 @@ WINDOWS_CLIENT_PATH = os.path.join( os.path.dirname(os.path.realpath(__file__) )
 
 BANK_BASE_URL = 'https://webapp.spmonzabank.net/fineract-provider'
 SAVINGS_URL = '/api/v1/savingsaccounts'
+PREPARE_TRANSACTION_URL = '/api/v1/interoperation/transfers'
 EXTERNAL_ID = '9fe93a25-9afa-4be7-94b5-75a4d730ee99'
 USERNAME = "SPMZBK"
 PASSWORD = "%FCCzGfDiS$o!1m"
@@ -51,6 +52,22 @@ def init_db():
                     )
                     ''')
     
+    cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS transactions (
+                        transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        requester_user_id TEXT,
+                        requester_user_ip TEXT,
+                        status TEXT NOT NULL,
+                        amount INTEGER,
+                        currency TEXT NOT NULL,
+                        note TEXT,
+                        transaction_code TEXT NOT NULL,
+                        transfer_code TEXT NOT NULL,
+                        transactionRole TEXT NOT NULL,
+                        comment TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                    ''')
     conn.commit()
     conn.close()
 
@@ -428,6 +445,134 @@ def get_savings_account():
             'Accept': 'application/json',
             'fineract-platform-tenantid': 'default'
         }    
+        response = requests.get(url, auth=HTTPBasicAuth(USERNAME, PASSWORD), headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        raise Exception(f'Bank responded with status code:{response.status_code}, Text:{response.text}')
+        
+    except Exception as ex:
+        return abort(500, text=str(ex))
+
+@app.route('/accounts/transactions/prepare', method="POST")
+@check_auth
+def prepare_transaction():
+    resp = {}
+    conn = None
+    user_id = request.get_cookie('user_id')
+    username = request.get_cookie('username')
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        url = f"{BANK_BASE_URL}{PREPARE_TRANSACTION_URL}?action=PREPARE"
+        currency = request.json.get('currency', 'USD')
+        note = request.json.get('note', '')
+        transactionCode = request.json.get('transactionCode', str(uuid.uuid4()))
+        transferCode = request.json.get('transferCode', str(uuid.uuid4()))
+        transactionRole = request.json.get('transactionRole', "PAYER")
+        amount = int(request.json.get('amount'))
+        if amount <= 0:
+            raise Exception('Provide valid amount')
+        payload = {
+            "accountId":EXTERNAL_ID,
+            "amount":{
+                "amount":amount,
+                "currency":currency
+            },
+            "note":note,
+            "transactionCode":transactionCode,
+            "transactionRole":transactionRole,
+            "transactionType":{
+                "initiator":"PAYER",
+                "initiatorType":"CONSUMER",
+                "scenario":"DEPOSIT",
+                "subScenario":"string"
+            },
+            "transferCode":transferCode
+        }
+        headers = {
+            'Accept': 'application/json',
+            'fineract-platform-tenantid': 'default'
+        }
+
+
+        response = requests.post(url, auth=HTTPBasicAuth(USERNAME, PASSWORD), headers=headers, json=payload)
+        if response.status_code == 200:
+            resp = response.json()
+            cursor.execute('''INSERT INTO transactions (requester_user_id, requester_user_ip, status, amount, currency, note, transaction_code, transfer_code, transactionRole, comment)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                          (user_id, request.environ.get('REMOTE_ADDR'), 'initiated', amount, currency, note, transactionCode, transferCode, transactionRole, f'{username} request for {amount} {currency} is initiated'))
+            conn.commit()
+        else:
+            raise Exception(f'Bank responded with status code:{response.status_code}, Text:{response.text}')
+        
+    except Exception as ex:
+        cursor.execute('''INSERT INTO transactions (requester_user_id, requester_user_ip, status, amount, currency, note, transaction_code, transfer_code, transactionRole, comment)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+                          (user_id, request.environ.get('REMOTE_ADDR'), 'failed', -1, currency, note, transactionCode, transferCode, transactionRole, f'{username} request for {request.json.get('amount')} {currency} failed with error:{ex}'))
+        conn.commit()
+        resp = abort(500, text=str(ex))
+
+    finally:
+        if conn:
+            conn.close()
+
+    return resp
+
+
+@app.route('/accounts/transactions', method=['GET', 'OPTIONS'])
+@enable_cors
+@check_auth
+def get_transactions():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT requester_user_id, requester_user_ip, status, amount, currency, note, transaction_code, transfer_code, transactionRole, comment, transaction_id, created_at FROM transactions ORDER BY created_at DESC')
+        users = cursor.fetchall()
+
+        return {"transactions": [
+            {
+                "requester_user_id": row[0], 
+                "requester_user_ip": row[1], 
+                "status": row[2], 
+                "amount": row[3],
+                "currency": row[4], 
+                "note": row[5], 
+                "transaction_code": row[6], 
+                "transfer_code": row[7],
+                "transactionRole": row[8], 
+                "comment": row[9],
+                "transaction_id": row[10],
+                "created_at": row[11],
+                } for row in users]}
+    except Exception as e:
+        return {"error": str(e), "transactions": []}
+
+@app.route('/accounts/transactions/<transaction_id>/status', method=['GET', 'OPTIONS'])
+@enable_cors
+@check_auth
+def get_transaction_status(transaction_id=None):
+    try:
+        
+        if not transaction_id:
+            return {'error': 'Transaction_id not provided'}
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT transaction_code, transfer_code FROM transactions WHERE transaction_id = ?', (transaction_id,))
+        data = cursor.fetchone()
+
+        if not data:
+            return {"error": f"Transaction_id:{transaction_id} not found in db"}
+
+        transaction_code, transfer_code = data
+        
+        
+        url = "{}/api/v1/interoperation/transactions/{}/transfers/{}".format(BANK_BASE_URL, transaction_code, transfer_code)
+        payload={}
+        headers = {
+            'Accept': 'application/json',
+            'fineract-platform-tenantid': 'default'
+        }    
+        print(url)
         response = requests.get(url, auth=HTTPBasicAuth(USERNAME, PASSWORD), headers=headers)
         if response.status_code == 200:
             return response.json()
