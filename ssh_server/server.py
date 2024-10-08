@@ -566,7 +566,7 @@ def get_transaction_status(transaction_id=None):
         transaction_code, transfer_code = data
         
         
-        url = "{}/api/v1/interoperation/transactions/{}/transfers/{}".format(BANK_BASE_URL, transaction_code, transfer_code)
+        url = "{}/api/v1/interoperation/transactions/{}/requests/{}".format(BANK_BASE_URL, transaction_code, transfer_code)
         payload={}
         headers = {
             'Accept': 'application/json',
